@@ -2,4 +2,20 @@
 
 @tailwind components;
 
+.animate-fast {
+    @apply transition-all duration-100 ease-in-out;
+}
+
+.nav-button {
+    @apply ml-6;
+}
+
+a {
+    @apply transition-none;
+}
+
+.nav-button::hover {
+    @apply text-gray-200
+}
+
 @tailwind utilities;
