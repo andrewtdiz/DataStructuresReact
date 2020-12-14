@@ -1,37 +1,55 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useLayoutEffect, useRef } from 'react'
 import {useLocation} from 'react-router-dom';
 import Slider from '../Slider';
+import DropSelect from '../DropSelect'
+import * as Tone from 'tone'
 
-
-export default function Sorting() {
+export default function Sorting(props:any) {
     const [elements, setElements] = React.useState<Array<number>>([])
     const [coloredElements, setColoredElements] = React.useState<Array<number>>([])
     // const [canvas, setCanvas] = React.useState<HTMLElement | null>(null)
-    const [nOfElem, setNOfElem] = React.useState<number>(10)
-    const [DELAY, setDELAY] = React.useState<number>(500);
+    const [nOfElem, setNOfElem] = React.useState<number>(100)
+    const [DELAY, setDELAY] = React.useState<number>(40);
     const [loc, setLoc] = React.useState<number>(0);
     const [commands, setCommands] = React.useState<Array<Array<number>>>([])
     const [playing, setPlaying] = React.useState<boolean>(false)
+    const [osc, setOsc] = React.useState<Tone.Oscillator>();
     let path = useLocation().pathname
 
-
     const resetElements = () => {
-        let arr = []
+        let arr:Array<number>
+        arr = []
         for(let i=0;i<nOfElem;i++) {
             arr.push(Math.floor(Math.random() *nOfElem))
         }
-        setElements(arr)
-        setCommands([])
+        setElements(prev => arr.slice(0))
+        setLoc(prev => 0)
+        setPlaying(false)
+        setTimeout(() => {
+            setColoredElements(prev => [-1,-1])
+            setCommands(prev => [])
+        }, 100)
     }
 
-    const algorithmHandler = (dir:number) => {
+    const skipHandler = () => {
+        setPlaying(false)
+        for(let i=loc; i<commands.length;i++) {
+            commandHandler(i)
+        }
+        setCommands(prev => [])
+        setTimeout(() => {
+            setColoredElements([-1,-1])
+        }, 100)
+    }
+
+    const algorithmHandler = () => {
+        if(playing) return
         switch(path) {
             case "/Insertionsort":
                 insertionSort();
                 break;
             case "/Bubblesort":
                 bubbleSort();
-                setPlaying(true)
                 break;
             case "/Quicksort":
                 quickSort();
@@ -48,31 +66,25 @@ export default function Sorting() {
             default:
                 return
         }
+        setPlaying(true)
+
     }
 
     let insertionSort = () => {
-        let arr = elements;
+        let arr = elements.slice(0);
         let j = 0;
         let hold;
-        let t = 0;
-        for(let i=1; i<elements.length;i++) {
+        for(let i=1; i<arr.length;i++) {
             j = i-1
             while(j>=0 && arr[j]>arr[j+1]) {
                 hold = arr[j]
                 arr[j] = arr[j+1]
                 arr[j+1] = hold
+                markColoredElems(j, j+1)
+                swapElems(j, j+1)
                 j--
-                setTimeout((j) => {
-                    setColoredElements([j,j+1])
-                }, t, j)
-                t+=DELAY
-                setTimeout((j, arr) => {
-                    setElements(arr)
-                }, t, j, arr.slice(0))
-                t+=DELAY
             }
         }
-        setColoredElements([-1,-1])
     }
 
     useEffect(() => {
@@ -83,98 +95,100 @@ export default function Sorting() {
     }, [loc])
 
     useEffect(() => {
-        if(playing) setLoc(prev => prev+1)
-    }, [playing])
+        setOsc(new Tone.Oscillator(440, "sine").toDestination())
+    }, [])
 
-    
-    let commandHandler = (i:number) => {
-        let method = commands[i][0]
-        let first = commands[i][1]
-        let second = commands[i][2]
-        console.log(first, second, method)
-        if(method===0) {
-            setColoredElements([first, second])
+    useEffect(() => {
+        if(playing) {
+            stepLoc(1)
+            if(osc===undefined) return
+            osc.start()
         } else {
-            let arr = elements
-            let hold = arr[first]
-            arr[first] = arr[second]
-            arr[second] = hold
-            console.log(arr)
-            setElements(arr.slice(0))
+            console.log(osc)
+            if(osc===null || osc===undefined) return
+            console.log('here ia m')
+            osc.stop()
         }
-        if(playing) setLoc(prev=> prev+1)
+    }, [playing])
+    
+    let freqs = [
+        'C4','D4','E4','F4','G4','A4','B4',
+        'C5','D5','E5','F5','G5','A5','B5',
+    ]
+
+    let commandHandler = (i:number) => {
+        if(i>=commands.length) {
+            setPlaying(false)
+            setColoredElements([-1,-1])
+            return
+        }
+        let [method, first, second] = commands[i]
+        if(method===0) {
+            setColoredElements(prevState => [first, second])
+        } else if(method===1) {
+            setElements(prevState => {
+                if(osc!==undefined) {
+                    osc.set({
+                        frequency: freqs[Math.abs(Math.floor((((prevState[first]-prevState[second])/prevState.length)*freqs.length)))],
+                    });
+                }
+                let hold = prevState[first]
+                prevState[first] = prevState[second]
+                prevState[second] = hold
+                return prevState
+            })
+        } else {
+            setElements(prevState => {
+                if(osc!==undefined) {
+                    osc.set({
+                        frequency: freqs[Math.abs(Math.floor(((second/prevState.length)*freqs.length)))],
+                    });
+                }
+                prevState[first] = second
+                return prevState
+            })
+        }
+        if(playing) stepLoc(1)
     }
 
     let bubbleSort = () => {
-        let arr = elements
+        let hold;
+        let count = 0
+        let arr = elements.slice(0)
         for(let i=arr.length-1;i>=1;i--) {
+            count = 0
             for(let j=0;j<i;j++) {
+                count++
                 setCommands(oldState => [...oldState, [0,j,j+1]])
                 if(arr[j]>arr[j+1]) {
+                    hold = arr[j]
+                    arr[j] = arr[j+1]
+                    arr[j+1] = hold
                     setCommands(oldstate => [...oldstate, [1,j,j+1]])
                 }
             }
+            if(count===0) return
         }
     }
-
-    let bubbleSort_iterative = (i=0, j=elements.length-1,swapcount=0) => {
-        let hold;
-        let arr = elements
-        setColoredElements([i,i+1])
-        if(arr[i]>arr[i+1]) {
-            ++swapcount
-            hold = arr[i]
-            arr[i] = arr[i+1]
-            arr[i+1] = hold
-            setElements(arr) 
-        }
-        if (j === 1){
-            return
-        }
-        if (i < j){
-            console.log('DELAY on call ', DELAY)
-            setTimeout(() => {
-                console.log('DELAY in the setTimeout', DELAY)
-                bubbleSort_iterative(i+1,j,swapcount)
-            }, DELAY);
-        }else {
-            if (swapcount === 0) return
-            swapcount = 0;
-            setTimeout(() => {
-                bubbleSort_iterative(0,j-1,swapcount)
-            }, DELAY);
-        }
-    }
-
-    let timeDelay = 0;
 
     let quickSortPartition = (arr:Array<number>, start:number, end:number) => {
         let hold;
         let x = arr[end]
         let i = start-1
         for(let j=start; j<end; j++) {
-            setTimeout((j) => {
-                setColoredElements([j,j+1])
-            }, timeDelay, j)
-            timeDelay += DELAY
+            markColoredElems(j, j+1)
             if(arr[j] <= x) {
                 i++
                 hold = arr[i]
                 arr[i] = arr[j]
                 arr[j] = hold
-                setTimeout((arr) => {
-                    setElements(arr)
-                }, timeDelay, arr.slice(0))
-                timeDelay += DELAY
+                swapElems(i,j)
             }
         }
         hold = arr[i+1]
         arr[i+1] = arr[end]
         arr[end] = hold
-        setTimeout((arr) => {
-            setElements(arr)
-        }, timeDelay, arr.slice(0))
-        timeDelay += DELAY
+        swapElems(i+1,end)
         return i+1
     }
 
@@ -188,7 +202,11 @@ export default function Sorting() {
     }
 
     let quickSort = () => {
-        quickSortRecurse(elements)
+        quickSortRecurse(elements.slice(0))
+    }
+
+    let insertElement = (i:number, j:number) => {
+        setCommands(oldState => [...oldState, [2, i, j]])
     }
 
     let merge = (arr:Array<number>, start:number, middle:number, end:number) => {
@@ -196,6 +214,7 @@ export default function Sorting() {
         let right = []
         let i =0
         let j =0
+        let hold;
         for(let i=start;i<=middle;i++) {
             left.push(arr[i])
         }
@@ -203,44 +222,33 @@ export default function Sorting() {
             right.push(arr[i])
         }
         while(left.length!==0 && right.length!==0) {
-            setTimeout((j, i) => {
-                setColoredElements([j,i])
-            }, timeDelay, start+i, middle+1+j)
-            timeDelay += DELAY
+            markColoredElems(start+i, middle+1+j)
             if(left[0] < right[0]) {
-                arr[start+i+j] = left.splice(0,1)[0]
-                setTimeout((arr) => {
-                    setElements(arr)
-                }, timeDelay, arr.slice(0))
-                timeDelay += DELAY
+                hold = left.splice(0,1)[0]
+                arr[start+i+j] = hold
+                insertElement(start+i+j, hold)
                 i++
             } else {
-                arr[start+i+j] = right.splice(0,1)[0]
-                setTimeout((arr) => {
-                    setElements(arr)
-                }, timeDelay, arr.slice(0))
-                timeDelay += DELAY
+                hold = right.splice(0,1)[0]
+                arr[start+i+j] = hold
+                insertElement(start+i+j, hold)
                 j++
             }
         }
         while(left.length!==0) {
-            arr[start+i+j] = left.splice(0,1)[0]
-            setTimeout((arr) => {
-                setElements(arr)
-            }, timeDelay, arr.slice(0))
-            timeDelay += DELAY
+            hold = left.splice(0,1)[0]
+            arr[start+i+j] = hold
+            insertElement(start+i+j, hold)
             i++
         }
         while(right.length!==0) {
-            arr[start+i+j] = right.splice(0,1)[0]
-            setTimeout((arr) => {
-                setElements(arr)
-            }, timeDelay, arr.slice(0))
-            timeDelay += DELAY
+            hold = right.splice(0,1)[0]
+            arr[start+i+j] = hold
+            insertElement(start+i+j, hold)
             j++
         }
     }
-
+    
     let mergeSortRecurse = (arr:Array<number>,start=0,end=elements.length-1) => {
         if(start>=end) return 
         let middle = Math.floor((end+start)/2);
@@ -250,85 +258,75 @@ export default function Sorting() {
     }
 
     let mergeSort = () => {
-        mergeSortRecurse(elements)
+        mergeSortRecurse(elements.slice(0))
+    }
+
+    let markColoredElems = (i:number,j:number) => {
+        setCommands(oldState => [...oldState, [0, i, j]])
+    }
+
+    let swapElems = (i:number,j:number) => {
+        setCommands(oldState => [...oldState, [1, i, j]])
     }
 
     let selectionSort = () => {
         let least;
         let leastInd = 0;
-        let arr = elements
+        let arr = elements.slice(0)
         let hold;
         for(let i=0; i<arr.length;i++) {
             least = Infinity
             for(let j=i;j<arr.length;j++) {
-                setTimeout((i, j) => {
-                    setColoredElements([i, j])
-                }, timeDelay, i, j)
-                timeDelay += DELAY
                 if(arr[j]<least) {
                     least = arr[j]
                     leastInd = j
                 }
+                markColoredElems(leastInd,j)
+
             }
             hold = arr[i]
             arr[i] = arr[leastInd]
             arr[leastInd] = hold
-            setTimeout((arr) => {
-                setElements(arr)
-            }, timeDelay, arr.slice(0))
-            timeDelay += DELAY
+            swapElems(i, leastInd)
         }
     }
 
     let cocktailSort = () => {
-        let leastGreatest;
-        let leastGreatestInd = 0;
-        let arr = elements
+        let arr = elements.slice(0)
         let hold;
         let passes=0
+        let count=0
         let i=0
         let j=arr.length-1
-        while (i!==j) {
-            leastGreatest = passes%2===0 ? Infinity : -1*Infinity
+        while (i<=j) {
+            count = 0
             if(passes%2===0) {
-                for(let k=i;k<=j;k++) {
-                    setTimeout((i, k) => {
-                        setColoredElements([i, k])
-                    }, timeDelay, i, k)
-                    timeDelay += DELAY
-                    if(arr[k]<leastGreatest) {
-                        leastGreatest = arr[k]
-                        leastGreatestInd =k
+                for(let k=i;k<j;k++) {
+                    markColoredElems(k, j)
+                    if(arr[k]>arr[k+1]) {
+                        count++
+                        hold = arr[k]
+                        arr[k] = arr[k+1]
+                        arr[k+1] = hold
+                        swapElems(k,k+1)
                     }
                 }
-            } else {
-                for(let k=j;k>=i;k--) {
-                    setTimeout((j, k) => {
-                        setColoredElements([j, k])
-                    }, timeDelay, j, k)
-                    timeDelay += DELAY
-                    if(arr[k]>leastGreatest) {
-                        leastGreatest = arr[k]
-                        leastGreatestInd = k
-                    }
-                }
-            }
-            if(passes%2===0) {
-                hold = arr[i]
-                arr[i] = arr[leastGreatestInd]
-                arr[leastGreatestInd] = hold
-                i++
-            } else {
-                hold = arr[j]
-                arr[j] = arr[leastGreatestInd]
-                arr[leastGreatestInd] = hold
+                if(count===0) return
                 j--
+            } else {
+                for(let k=j;k>i;k--) {
+                    markColoredElems(k,i)
+                    if(arr[k]<arr[k-1]) {
+                        count++
+                        hold = arr[k]
+                        arr[k] = arr[k-1]
+                        arr[k-1] = hold
+                        swapElems(k,k-1)
+                    }
+                }
+                if(count===0) return
+                i++
             }
-            setTimeout((arr) => {
-                console.log('here iam')
-                setElements(arr)
-            }, timeDelay, arr.slice(0))
-            timeDelay += DELAY
             passes++
         }
     }
@@ -390,41 +388,55 @@ export default function Sorting() {
     //     maxHeap()
     //     heapify()
     // }
-
     
     useEffect(()=> {
         resetElements()
-        setColoredElements([-1,-1])
-    }, [path])
+    }, [path, nOfElem])
 
-    useEffect(() => {
-        const setUpArrays = () => {
-            let arr = []
-            for(let i=0;i<nOfElem;i++) {
-                arr.push(Math.floor(Math.random() *nOfElem))
-            }
-            setElements(arr)
+    const stepLoc = (dir:number) => {
+        setLoc(prevLoc => prevLoc+dir)
+    }
+
+    let MAXDELAY = 40
+
+    let delayChange = (newVal:number) => {
+        setDELAY(Math.floor((newVal)*(MAXDELAY-1))+1)
+    }
+
+    const canvasRef = useRef<HTMLCanvasElement | null>(null)
+
+    useLayoutEffect(() => {
+        if(canvasRef===null) return 
+        const canvas = canvasRef.current;
+        const context = canvas!.getContext("2d")
+        if(context===null) return
+        if(canvas===null) return
+        context?.clearRect(0, 0, canvas.width, canvas.height);
+        for(let i=0;i<elements.length;i++) {
+            context.fillStyle = (coloredElements.includes(i) ? "#FF0000" : "#6b7280")
+            context?.fillRect((i/nOfElem)*canvas.width, canvas.height, -(1/elements.length)*canvas.width, -(elements[i]/elements.length)*(canvas.height));
         }
-        setUpArrays()
-    }, [nOfElem])
+    })
+
+    
 
     return (
-        <div className="flex-1 w-full h-full bg-gray-200 items-center flex flex-col pt-12 ">
-            <div className="container flex items-end bg-white rounded-md h-64 shadow">
-                {elements.map((val,ind) => (
-                    <div key={ind} className={coloredElements.includes(ind) ? 'bg-red-500' : 'bg-gray-500'} style={{width: '1%', marginRight: '1px', height: 100*val/elements.length+'%'}}></div>
-                ))}
-                {/* <canvas className="mx-auto" width="1240" height="260" ref={inputEl} id="mycanvas"></canvas> */}
+        <div className="flex-1 w-full bg-gray-200 items-center flex flex-col h-full py-12 ">
+            <div className="container flex flex-col bg-white shadow-md rounded">
+                <div className="flex w-full justify-between items-center mb-6 p-5">
+                    <h1 className="text-4xl font-medium text-left">{props.title}</h1>
+                    <DropSelect label="Elements" value={nOfElem} onChange={(event:number) => setNOfElem(event)}/>
+                    <div>
+                        <button onClick={() => playing ? setPlaying(false) : commands.length===0 ? algorithmHandler() : !playing ? setPlaying(true) : ''} className={"bg-green-500 focus:outline-none mr-6 animation-fast text-white px-3 py-2 text-lg rounded "}>{playing ? 'Pause' : 'Play'}</button>
+                        <button onClick={() => playing ? skipHandler() : ''} className={"bg-green-500 focus:outline-none animation-fast text-white px-3 py-2 text-lg rounded " + (!playing ? "bg-opacity-25 cursor-none" : "hover:bg-green-600")}>Skip</button>
+                    </div>
+                    <Slider className="mx-auto" label="Speed" value={loc} onChange={(event:number) => delayChange(event)}/>
+                    <button onClick={() => !playing ? resetElements() : ''} className={"bg-gray-500 focus:outline-none animation-fast text-white px-3 py-2 text-lg rounded "  + (!playing ? "hover:bg-gray-600" : "bg-opacity-25 cursor-none")}>Reset</button>
+                </div>
+                <div className="w-full flex-1 flex items-end rounded-md h-64 px-1">
+                    <canvas className="mx-auto" width="1240" height="260" ref={canvasRef} id="mycanvas"></canvas>
+                </div>
             </div>
-            <input type="text" value={DELAY} onChange={e => setDELAY(+e.target.value)}/>
-            <button onClick={() => algorithmHandler(1)} className="bg-green-500 hover:bg-green-600 animation-fast text-white px-3 py-2 text-lg mt-3 rounded">Go!</button>
-            <button onClick={() => setPlaying(false)} className="bg-green-500 hover:bg-green-600 animation-fast text-white px-3 py-2 text-lg mt-3 rounded">Pause</button>
-            <div className="fle">
-                <button onClick={() => setLoc(prev=>prev+1)} className="bg-green-500 hover:bg-green-600 animation-fast text-white px-3 py-2 text-lg mt-3 rounded">Right</button>
-                <button onClick={() => setLoc(prev=>prev-1)} className="bg-green-500 hover:bg-green-600 animation-fast text-white px-3 py-2 text-lg mt-3 rounded">Left</button>
-            </div>
-            <button onClick={() => resetElements()} className="bg-gray-500 hover:bg-gray-600 animation-fast text-white px-3 py-2 text-lg mt-3 rounded">Reset</button>
-            <Slider />
         </div>
     )
 }

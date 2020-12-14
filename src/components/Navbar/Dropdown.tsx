@@ -23,7 +23,7 @@ class Dropdown extends React.Component<NavbarProps, NavbarState> {
       <div
         onMouseEnter={() => this.setState({ isActive: true })}
         onMouseLeave={() => this.setState({ isActive: false })}
-        className="relative ml-12 flex items-center"
+        className="relative ml-12 flex items-center z-40"
       >
         <button className={this.state.isActive ? "text-gray-200 text-base" : "text-base"}>
           {this.props.label}
@@ -51,7 +51,7 @@ class Dropdown extends React.Component<NavbarProps, NavbarState> {
         >
           <div className="bg-gray-800 rounded flex flex-col text-white w-64 p-1 shadow">
             {this.props.dropDownItems.map(item => (
-                <Link onClick={()=> this.setState({isActive: false})} to={'/'+item} key={item} style={{ textDecoration: 'none' }} className="w-full transition-none rounded hover:bg-blue-800 hover:text-gray-200 text-white text-lg text-left px-2 py-1"> {item} </Link>
+                <Link onClick={()=> this.setState({isActive: false})} to={'/'+item.split(' ').join('')} key={item} style={{ textDecoration: 'none' }} className="w-full transition-none rounded hover:bg-blue-800 hover:text-gray-200 text-white text-lg text-left px-2 py-1"> {item} </Link>
             ))}
 
           </div>

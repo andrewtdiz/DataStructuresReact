@@ -1,36 +1,12 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Dropdown from "./Navbar/Dropdown";
-
+import {tabs} from '../Constants'
 export interface NavbarProps {}
 
 export interface NavbarState {}
 
 export default function Navbar() {
-  const [tabs] = React.useState([
-    {
-      name: "Sorting",
-      links: [
-        "Quicksort",
-        "Mergesort",
-        "Bubblesort",
-        "Insertionsort",
-        "Selectionsort",
-        "Cocktailsort",
-      ],
-    },
-    {
-      name: "Searching",
-      links: [
-        "Depth First Search",
-        "Breadth First Search",
-        "A* Search",
-        "Dijkstra's algorithm",
-        "Greedy Algorithm",
-      ],
-    },
-  ]);
-
   return (
     <div className="w-full h-16 bg-gray-700 text-white flex justify-center items-center">
       <div className="container flex">
