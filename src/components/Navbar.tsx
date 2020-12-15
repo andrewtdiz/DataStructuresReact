@@ -8,24 +8,22 @@ export interface NavbarState {}
 
 export default function Navbar() {
   return (
-    <div className="w-full h-16 bg-gray-700 text-white flex justify-center items-center">
+    <div className="w-full h-16 bg-white shadow-sm text-white flex justify-center items-center">
       <div className="container flex">
-        <Link to="/">
-          <button className="text-white mt-1 text-xl hover:text-gray-300 animate-fast">
-            JS vs WASM Visualizer
-          </button>
-        </Link>
-        <div className="flex text-white mt-1 ml-6">
+        <button className="mt-1 text-xl animate-fast text-gray-600 hover:text-gray-900">
+          JS vs WASM Visualizer
+        </button>
+        <div className="flex text-gray-600 mt-1 ml-6">
           {tabs.map(tab => (
             <Dropdown key={tab.name} label={tab.name} dropDownItems={tab.links}/>
           ))}
         </div>
         <div className="flex ml-auto text-white mt-1">
-          <Link to="/resume">
+          {/* <Link to="/resume">
             <button className="text-white mr-6 hover:text-gray-200 text-xl px-3 rounded">
               My resume
             </button>
-          </Link>
+          </Link> */}
           <button
             onClick={() =>
               window.open(

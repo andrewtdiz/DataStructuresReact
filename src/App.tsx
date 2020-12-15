@@ -49,7 +49,9 @@ function App() {
           <Sorting title={"Cocktail Sort : O(n²)"} />
         </Route> */}
         <Route path="/">
-          <h1>Here I amm</h1>
+          <div className="w-full bg-gray-200 flex-1 flex flex-col items-center justify-center">
+            <h1 className="text-5xl font-bold">Coming Soon!</h1>
+          </div>
         </Route>
       </Switch>
     </div>

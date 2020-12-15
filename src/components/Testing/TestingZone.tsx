@@ -45,7 +45,7 @@ export default function TestingZone(props:any) {
             <p className="w-full text-2xl text-center" style={{marginBottom: 0}}> <b>0/1,000</b></p>
             <p className="w-full text-center -mt-1">arrays</p>
             <div className="w-full flex justify-center">
-                <button onClick={() => runArrays()} className="bg-green-500 hover:bg-green-600 mx-auto focus:outline-none animation-fast text-white px-3 py-2 text-lg rounded">{!testing ? 'Run' : <div className="loader"></div>}</button>
+                <button onClick={() => ''} className="bg-green-500 hover:bg-green-600 mx-auto focus:outline-none animation-fast text-white px-3 py-2 text-lg rounded">{!testing ? 'Run' : <div className="loader"></div>}</button>
             </div>
         </div>
     )
