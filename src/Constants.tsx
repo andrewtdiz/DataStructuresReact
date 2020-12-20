@@ -9,7 +9,7 @@ const tabs = [
     },
     {
         name: 'Searching',
-        links: ['Depth First Search', 'Breadth First', 'A* Search', 'Dijkstras Algorithm', 'Greedy Algorithm'],
+        links: ['Depth First Search', 'Breadth First', 'Dijkstras Algorithm','A* Search', 'Greedy Algorithm'],
     },
 ];
 
