@@ -2,9 +2,19 @@
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
+CSS Styling was done with [TailwindCSS](https://tailwindcss.com/)
+
 ## Available Scripts
 
-In the project directory, you can run:
+### 1. Build CSS
+
+In the project directory, you **must** first run 
+
+### `npm build:css` 
+
+### 2. Run Development mode
+
+Then, in the project directory, you can run:
 
 ### `npm start`
 
