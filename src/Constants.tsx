@@ -1,7 +1,7 @@
 const tabs = [
     {
         name: 'Speed Test',
-        links: ['Sorting', 'Searching', 'Rendering']
+        links: ['Sorting', 'Searching', 'Rendering'],
     },
     {
         name: 'Sorting',
@@ -9,7 +9,7 @@ const tabs = [
     },
     {
         name: 'Searching',
-        links: ['Depth First Search', 'Breadth First', 'Dijkstras Algorithm','A* Search', 'Greedy Algorithm'],
+        links: ['Depth First Search', 'Breadth First', 'Dijkstras Algorithm', 'A* Search', 'Greedy Algorithm'],
     },
 ];
 
@@ -25,7 +25,8 @@ const languages = [
     },
     {
         name: 'Rust',
-        img: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Rustacean-orig-noshadow.svg/220px-Rustacean-orig-noshadow.svg.png',
+        img:
+            'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Rustacean-orig-noshadow.svg/220px-Rustacean-orig-noshadow.svg.png',
     },
 ];
 

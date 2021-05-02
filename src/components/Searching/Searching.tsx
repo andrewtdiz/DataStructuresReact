@@ -1,8 +1,13 @@
-import React, { useRef, useLayoutEffect, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { inflate } from 'zlib';
+import * as Tone from 'tone';
+
 import DropSelect from '../DropSelect';
-import * as Tone from 'tone'
+
+import { FREQUENCIES } from '../../constants/Sorting';
+import breadthFirstCheck from '../../utils/searching/BreadthFirstCheck';
+import depthFirstSearch from '../../utils/searching/DepthFirstSearch';
+import breadthFirstSearch from '../../utils/searching/BreadthFirstSearch';
 
 export default function Searching(props: any) {
     const [graph, setGraph] = React.useState<Array<Array<number>>>([]);
@@ -18,7 +23,6 @@ export default function Searching(props: any) {
     const [change, setChange] = React.useState<number>(0);
     const [commands, setCommands] = React.useState<Array<Array<number>>>([]);
     const [ind, setInd] = React.useState<number>(-1);
-    const [positionChanges, setPositionChanges] = React.useState<number>(0);
     const [showDistance, setShowDistance] = React.useState<boolean>(false);
     const [isPlaying, setIsPlaying] = React.useState<boolean>(false);
     const [osc, setOsc] = React.useState<Tone.Oscillator>();
@@ -26,123 +30,27 @@ export default function Searching(props: any) {
     const distanceScale = 40;
     let path = useLocation().pathname;
 
-    const addToGraph = (x: number, y: number) => {
-        setGraph((prev) => [...prev, [x, y]]);
-    };
-
     const getHypot = (i: Array<number>, j: Array<number>) => {
         return Math.hypot(Math.abs(i[0] - j[0]), Math.abs(i[1] - j[1]));
     };
 
     useEffect(() => {
-        setOsc(new Tone.Oscillator(440, "sine").toDestination())
-    }, [])
+        setOsc(new Tone.Oscillator(440, 'sine').toDestination());
+    }, []);
 
-    let freqs = [
-        'C4','D4','E4','F4','G4','A4','B4',
-        'C5','D5','E5','F5','G5','A5','B5',
-    ]
-    
     useEffect(() => {
-        if(isPlaying) {
-            if(osc===undefined) return
-            osc.start()
+        if (isPlaying) {
+            if (osc === undefined) return;
+            osc.start();
         } else {
-            if(osc===null || osc===undefined) return
-            osc.stop()
+            if (osc === null || osc === undefined) return;
+            osc.stop();
         }
-    }, [isPlaying])
-
-    const breadthFirstCheck = (graphHold: Array<Array<number>>) => {
-        let i = 0;
-        let unique = [0];
-        let hold;
-        let a;
-        while (i !== unique.length) {
-            a = (uniqueHold: Array<number>, j: number) =>
-                graphHold[j].slice(2).filter((val) => !uniqueHold.includes(val));
-            hold = a(unique.slice(0), unique[i]);
-            unique = [...unique, ...hold];
-            i++;
-        }
-        return unique.length === graphHold.length;
-    };
+    }, [isPlaying]);
 
     const addSelectedCommand = (selected: Array<number>) => {
         setCommands((prev) => [...prev, selected]);
     };
-
-    const breadthFirstSearch = (graphHold: Array<Array<number>>, start=0, end=graphHold.length-1) => {
-        let unique = [start];
-        let hold;
-        let a;
-        for (let i=0; i<unique.length;i++) {
-            a = (uniqueHold: Array<number>, j: number) =>
-                graphHold[j].slice(2).filter((val) => !uniqueHold.includes(val));
-            hold = a(unique.slice(0), unique[i]);
-            for(let j=0;j<hold.length;j++) {
-                unique.push(hold[j])
-                addSelectedCommand(unique.slice(0))
-                if(hold[j]===end) return
-            }
-        }
-        return 
-    };
-
-    const depthFirstSearch = (graphHold: Array<Array<number>>, start:number, end:number) => {
-        if (graphHold.length === 0) return;
-        let stack = [start];
-        addSelectedCommand(stack.slice(0));
-        let unique = [start];
-        let hold;
-        while (stack.length !== graphHold.length) {
-            if (graphHold[stack[stack.length - 1]].length > 2) {
-                hold = graphHold[stack[stack.length - 1]].splice(2, 1)[0];
-                if (!unique.includes(hold)) {
-                    stack.push(hold);
-                    unique.push(hold);
-                    addSelectedCommand(stack.slice(0));
-                }
-                if (hold === end) {
-                    break;
-                }
-            } else {
-                stack.pop();
-                addSelectedCommand(stack.slice(0));
-            }
-        }
-    };
-
-    const dijkstrasAlgorithm = (graphHold: Array<Array<number>>, start:number, end:number) => {
-        console.log(start, end, ' is start end')
-        let visited: Array<number>
-        visited = [start]
-        let table: Array<Array<number>>
-        table = []
-        for(let i=0;i<graphHold.length;i++) {
-            if(i===start) table[i] = [0]
-            else table[i] = [Infinity]
-        }
-        let i = 0;
-        let hold: Array<number>
-        let dist: number
-        let leastDist = Infinity
-        while(i !== graphHold.length) {
-            console.log(table.slice(0), visited.slice(0))
-            hold = graphHold[visited[i]].slice(2)
-            for(let j=0;j<hold.length;j++) {
-                if(visited.slice(0,i).includes(hold[j])) continue
-                visited.push(hold[j])
-                console.log('getting dist from ', visited[i], ' to ', hold[j])
-                dist = Math.floor(getHypot(graph[hold[j]], graph[visited[i]]) / distanceScale) + table[i][0]
-                console.log('comparing ', dist, ' and ', table[hold[j]][0], ' from ', i, ' to ', hold[j])
-                if(dist < table[hold[j]][0]) {
-                    table[hold[j]] = [dist, i]
-                }
-            }
-            i++
-        }
-    }
 
     const makeGraph = () => {
         let x2 = 0;
@@ -184,7 +92,7 @@ export default function Searching(props: any) {
                     closest = Infinity;
                     closestInd = -1;
                     for (let j = 0; j < graphHold.length; j++) {
-                        if ((getHypot(graphHold[i], graphHold[j]) < closest) && (j !== i)) {
+                        if (getHypot(graphHold[i], graphHold[j]) < closest && j !== i) {
                             closestInd = j;
                             closest = getHypot(graphHold[i], graphHold[j]);
                         }
@@ -211,43 +119,40 @@ export default function Searching(props: any) {
     const calcMidPoint = (i: number, j: number) => {
         return (i + j) / 2;
     };
-    
+
     useEffect(() => {
-        if(isPlaying && ind>=commands.length-1) setInd(0)
-        else if(isPlaying) setInd(prev => ++prev)
-    }, [isPlaying])
+        if (isPlaying && ind >= commands.length - 1) setInd(0);
+        else if (isPlaying) setInd((prev) => ++prev);
+    }, [isPlaying]);
 
     useEffect(() => {
         if (graph.length !== numElements) return;
         setCommands([]);
-        setInd(-1)
+        setInd(-1);
         let hold = [];
         for (let i = 0; i < graph.length; i++) {
             hold.push(graph[i].slice(0));
         }
-        switch(path) {
+        switch (path) {
             case '/DepthFirstSearch':
-                depthFirstSearch(hold, startEnd[0], startEnd[1]);
+                depthFirstSearch(hold, startEnd[0], startEnd[1], addSelectedCommand);
                 break;
             case '/BreadthFirst':
-                breadthFirstSearch(hold, startEnd[0], startEnd[1])
-                break;
-            case '/DijkstrasAlgorithm':
-                dijkstrasAlgorithm(hold, startEnd[0], startEnd[1])
+                breadthFirstSearch(hold, startEnd[0], startEnd[1], addSelectedCommand);
                 break;
             default:
-                return
+                return;
         }
     }, [startEnd]);
 
     useEffect(() => {
         if (ind <= -1 || !isPlaying) return;
-        if(ind>=commands.length-1) {
-            setIsPlaying(false)
-            return
+        if (ind >= commands.length - 1) {
+            setIsPlaying(false);
+            return;
         }
-        if(osc!==undefined) {
-            let freq = freqs[Math.floor(Math.random()*freqs.length)]
+        if (osc !== undefined) {
+            let freq = FREQUENCIES[Math.floor(Math.random() * FREQUENCIES.length)];
             osc.set({
                 frequency: freq,
             });
@@ -290,10 +195,19 @@ export default function Searching(props: any) {
                 );
                 context.lineWidth = 2;
                 if (ind >= 0 && ind < commands.length) {
-                    if(path==='/DepthFirstSearch') context.strokeStyle = (commands[ind].includes(i) && commands[ind].includes(graph[i][j+2]) && Math.abs(commands[ind].indexOf(i)-commands[ind].indexOf(graph[i][j+2]))===1) ? '#FF0000' : '#6b7280';
-                    else if (path==='/BreadthFirst') context.strokeStyle = (commands[ind].includes(i) && commands[ind].includes(graph[i][j+2])) ? '#FF0000' : '#6b7280';
-                }
-                else context.strokeStyle = '#6b7280';
+                    if (path === '/DepthFirstSearch')
+                        context.strokeStyle =
+                            commands[ind].includes(i) &&
+                            commands[ind].includes(graph[i][j + 2]) &&
+                            Math.abs(commands[ind].indexOf(i) - commands[ind].indexOf(graph[i][j + 2])) === 1
+                                ? '#FF0000'
+                                : '#6b7280';
+                    else if (path === '/BreadthFirst')
+                        context.strokeStyle =
+                            commands[ind].includes(i) && commands[ind].includes(graph[i][j + 2])
+                                ? '#FF0000'
+                                : '#6b7280';
+                } else context.strokeStyle = '#6b7280';
                 context.stroke();
                 if (!showDistance) continue;
                 context.font = '24px Arial';
@@ -363,7 +277,7 @@ export default function Searching(props: any) {
     }, [updateTime]);
 
     const startGrab = (e: any) => {
-        setIsPlaying(false)
+        setIsPlaying(false);
         if (canvasRef === null) return;
         var rect = canvasRef.current?.getBoundingClientRect() || { left: 0, top: 0 };
         let xPos = e.clientX - rect.left;
@@ -386,8 +300,8 @@ export default function Searching(props: any) {
     const stopGrab = () => {
         setGrabbing(-1);
         setIsPlaying(false);
-        setInd(-1)
-    }
+        setInd(-1);
+    };
 
     useEffect(() => {
         if (canvHeight < 50) return;
@@ -396,7 +310,7 @@ export default function Searching(props: any) {
     }, [canvHeight, numElements, path]);
 
     const resetGraph = () => {
-        setInd(-1)
+        setInd(-1);
         let holdGraph = makeGraph();
         setGraph(holdGraph);
     };
@@ -425,32 +339,57 @@ export default function Searching(props: any) {
             <div ref={parent} className="container flex flex-col bg-white p-5 rounded-md px-1">
                 <div className="flex w-full justify-between items-center mb-6 p-5">
                     <h1 className="text-4xl font-medium text-left">{props.title}</h1>
-                    {isPlaying && 
-                        <button onClick={() => isPlaying ? setIsPlaying(false) : ''} className={"bg-green-500 hover:bg-green-600 focus:outline-none mr-7 animation-fast text-white px-3 py-2 text-lg rounded "}>
-                            
-                            <svg className="h-7 w-7 fill-current"  version="1.1" id="Capa_1" x="0px" y="0px" viewBox="0 0 512 512">
+                    {isPlaying && (
+                        <button
+                            onClick={() => (isPlaying ? setIsPlaying(false) : '')}
+                            className={
+                                'bg-green-500 hover:bg-green-600 focus:outline-none mr-7 animation-fast text-white px-3 py-2 text-lg rounded '
+                            }
+                        >
+                            <svg
+                                className="h-7 w-7 fill-current"
+                                version="1.1"
+                                id="Capa_1"
+                                x="0px"
+                                y="0px"
+                                viewBox="0 0 512 512"
+                            >
                                 <g>
                                     <g>
-                                        <path d="M181.333,0H74.667c-17.643,0-32,14.357-32,32v448c0,17.643,14.357,32,32,32h106.667c17.643,0,32-14.357,32-32V32    C213.333,14.357,198.976,0,181.333,0z"/>
+                                        <path d="M181.333,0H74.667c-17.643,0-32,14.357-32,32v448c0,17.643,14.357,32,32,32h106.667c17.643,0,32-14.357,32-32V32    C213.333,14.357,198.976,0,181.333,0z" />
                                     </g>
                                 </g>
                                 <g>
                                     <g>
-                                        <path d="M437.333,0H330.667c-17.643,0-32,14.357-32,32v448c0,17.643,14.357,32,32,32h106.667c17.643,0,32-14.357,32-32V32    C469.333,14.357,454.976,0,437.333,0z"/>
+                                        <path d="M437.333,0H330.667c-17.643,0-32,14.357-32,32v448c0,17.643,14.357,32,32,32h106.667c17.643,0,32-14.357,32-32V32    C469.333,14.357,454.976,0,437.333,0z" />
                                     </g>
                                 </g>
                             </svg>
                         </button>
-                        }
-                        {!isPlaying && 
-                        <button onClick={() => setIsPlaying(true) } className={"bg-green-500 hover:bg-green-600 focus:outline-none mr-7 animation-fast text-white px-3 py-2 text-lg rounded "}>
-                            <svg className="h-7 w-7 fill-current" version="1.1" id="Capa_1" x="0px" y="0px" width="163.861px" height="163.861px" viewBox="0 0 163.861 163.861">
+                    )}
+                    {!isPlaying && (
+                        <button
+                            onClick={() => setIsPlaying(true)}
+                            className={
+                                'bg-green-500 hover:bg-green-600 focus:outline-none mr-7 animation-fast text-white px-3 py-2 text-lg rounded '
+                            }
+                        >
+                            <svg
+                                className="h-7 w-7 fill-current"
+                                version="1.1"
+                                id="Capa_1"
+                                x="0px"
+                                y="0px"
+                                width="163.861px"
+                                height="163.861px"
+                                viewBox="0 0 163.861 163.861"
+                            >
                                 <g>
-                                    <path d="M34.857,3.613C20.084-4.861,8.107,2.081,8.107,19.106v125.637c0,17.042,11.977,23.975,26.75,15.509L144.67,97.275   c14.778-8.477,14.778-22.211,0-30.686L34.857,3.613z"/>
+                                    <path d="M34.857,3.613C20.084-4.861,8.107,2.081,8.107,19.106v125.637c0,17.042,11.977,23.975,26.75,15.509L144.67,97.275   c14.778-8.477,14.778-22.211,0-30.686L34.857,3.613z" />
                                 </g>
                             </svg>
                         </button>
-                        }
+                    )}
 
                     <button
                         onClick={resetGraph}

@@ -3,59 +3,35 @@ import 'antd/dist/antd.css';
 import Navbar from './components/Navbar';
 import Sorting from './components/Sorting/Sorting';
 import Speed from './components/Speed/Speed';
-import {
-  Switch,
-  Route
-}  from "react-router-dom";
+import { Switch, Route } from 'react-router-dom';
 import Searching from './components/Searching/Searching';
-import {tabs} from './Constants'
-import './App.css'
+import NAVBAR_ITEMS, { NavbarItem } from './constants/Navbar';
+import './App.css';
 
 function App() {
-  return (
-    <div className="h-screen flex flex-col">
-      <Navbar />
-      <Switch >
-        {tabs.map((group:{name:string, links: Array<string>}) => (
-          group.links.map((tab:string)=> (
-            <Route path={'/'+tab.split(' ').join('')}>
-              {group.name==='Searching' &&
-              <Searching title={tab} />}
-              {group.name==='Sorting' &&
-              <Sorting title={tab} />}
-              {group.name==='Speed Test' &&
-              <Speed title={tab} />}
-            </Route>
-        ))))}
-        {/* <Route path="/DepthFirst">
-          <Searching title={"Depth First Search"} />
-        </Route>
-        <Route path="/Insertionsort">
-          <Sorting title={"Insertion Sort : O(n²)"} />
-        </Route>
-        <Route path="/Bubblesort">
-          <Sorting title={"Bubble Sort : O(n²)"} />
-        </Route>
-        <Route path="/Quicksort">
-          <Sorting title={"Quick Sort : O(nlog(n))"} />
-        </Route>
-        <Route path="/Mergesort">
-          <Sorting title={"Merge Sort : O(nlog(n))"} />
-        </Route>
-        <Route path="/Selectionsort">
-          <Sorting title={"Selection Sort : O(n²)"} />
-        </Route>
-        <Route path="/Cocktailsort">
-          <Sorting title={"Cocktail Sort : O(n²)"} />
-        </Route> */}
-        <Route path="/">
-          <div className="w-full bg-gray-200 flex-1 flex flex-col items-center justify-center">
-            <h1 className="text-5xl font-bold">Coming Soon!</h1>
-          </div>
-        </Route>
-      </Switch>
-    </div>
-  );
+    return (
+        <div className="h-screen flex flex-col">
+            <Navbar />
+            <Switch>
+                {NAVBAR_ITEMS.map(
+                    (navbarItem: NavbarItem) =>
+                        navbarItem.links &&
+                        navbarItem.links.map((tab: string) => (
+                            <Route path={'/' + tab.split(' ').join('')}>
+                                {navbarItem.text === 'Searching' && <Searching title={tab} />}
+                                {navbarItem.text === 'Sorting' && <Sorting title={tab} />}
+                                {navbarItem.text === 'Speed Test' && <Speed title={tab} />}
+                            </Route>
+                        )),
+                )}
+                <Route path="/">
+                    <div className="w-full bg-gray-200 flex-1 flex flex-col items-center justify-center">
+                        <h1 className="text-5xl font-bold">Coming Soon!</h1>
+                    </div>
+                </Route>
+            </Switch>
+        </div>
+    );
 }
 
 export default App;
